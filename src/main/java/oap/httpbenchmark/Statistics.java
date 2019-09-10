@@ -45,6 +45,8 @@ public class Statistics {
             var percent = codeCount.get() * 100d / c;
             if (c == -1) {
                 System.out.printf("  ERR - %d (%.2f%%)\n", codeCount.get(), percent);
+            } else if (c == -2) {
+                System.out.printf("  STE - %d (%.2f%%)\n", codeCount.get(), percent);
             } else {
                 System.out.printf("  %d - %d (%.2f%%)\n", code, codeCount.get(), percent);
             }

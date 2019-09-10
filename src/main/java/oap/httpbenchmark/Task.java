@@ -3,6 +3,7 @@ package oap.httpbenchmark;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -41,9 +42,13 @@ public class Task implements Runnable {
                 statistics.code.computeIfAbsent(statusLine.getStatusCode(), k -> new AtomicLong()).incrementAndGet();
             }
         } catch (IOException e) {
-            System.out.println(e.getMessage());
             if (!warmUpMode) {
-                statistics.code.computeIfAbsent(-1, k -> new AtomicLong()).incrementAndGet();
+                var code = -1;
+                if (e instanceof SocketTimeoutException) {
+                    code = -2;
+                }
+
+                statistics.code.computeIfAbsent(code, k -> new AtomicLong()).incrementAndGet();
             }
         } finally {
             if (!warmUpMode)

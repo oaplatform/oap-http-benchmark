@@ -2,9 +2,6 @@ package oap.httpbenchmark;
 
 import com.google.common.util.concurrent.RateLimiter;
 
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 /**
@@ -37,7 +34,10 @@ public class Main {
                     case "-rt" -> configuration.timeout = timeToMS(value);
                     case "-in" -> configuration.inFile = value;
                     case "-wu" -> configuration.warmup = Integer.parseInt(value);
-                    case "-hm" -> configuration.histogram = Stream.of(value.split(",")).mapToLong(v -> Long.parseLong(v.trim())).toArray();
+                    case "-hm" -> configuration.histogram = Stream.of(("0," + value).split(","))
+                            .mapToLong(v -> Long.parseLong(v.trim()))
+                            .sorted()
+                            .toArray();
                     case "-url" -> configuration.url = value;
                     default -> {
                         System.out.println("Unknown arg " + name);
@@ -65,32 +65,42 @@ public class Main {
         System.setProperty("jdk.httpclient.keepalive.timeout", "99999999");
 
         var rateLimiter = RateLimiter.create(configuration.qps);
+        var statistics = new Statistics(configuration);
 
-        var executor = new ThreadPoolExecutor(configuration.threads, configuration.threads,
-                0L, TimeUnit.MILLISECONDS,
-                new LinkedBlockingQueue<>());
+        var pool = new Task[configuration.threads];
+        for (var i = 0; i < configuration.threads; i++) {
+            var task = new Task(configuration, rateLimiter, statistics);
+            pool[i] = task;
+        }
+
+        for (var thread : pool) {
+            thread.start();
+        }
 
         var start = -1L;
-        var statistics = new Statistics(configuration);
 
         while (System.currentTimeMillis() < start + configuration.time || start == -1L) {
             if (!statistics.isWarmUpMode() && start == -1) {
                 start = System.currentTimeMillis();
             }
-            rateLimiter.acquire();
-            executor.submit(getTask(configuration, statistics));
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+            }
         }
-        try {
-            executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
+        for (var thread : pool) {
+            thread.done = true;
         }
+        for (var thread : pool) {
+            try {
+                thread.join(5000);
+            } catch (InterruptedException e) {
+            }
+        }
+        for (var thread : pool) thread.stop();
+
 
         statistics.print(System.currentTimeMillis() - start);
-    }
-
-    private static Runnable getTask(Configuration configuration, Statistics statistics) {
-        return new Task(configuration, statistics);
     }
 
     private static long timeToMS(String value) {

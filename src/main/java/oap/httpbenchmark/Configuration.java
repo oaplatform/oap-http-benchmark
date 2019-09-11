@@ -24,7 +24,7 @@ public class Configuration {
     public String inFile;
 
     public Configuration() {
-        histogram = new long[]{10L, 30L, 50L, 100L, 150L, 200L, 300L, 500L, 1000L};
+        histogram = new long[]{0L, 10L, 30L, 50L, 100L, 150L, 200L, 300L, 500L, 1000L};
     }
 
     @Override
@@ -33,10 +33,10 @@ public class Configuration {
         sb.append("  threads = " + threads + "\n");
         if (qps > 0) sb.append("  qps = " + qps + "\n");
         sb.append("  method = " + method.name() + "\n");
-        sb.append("  time = " + time + "ms\n");
+        sb.append("  time = " + Utils.durationToString(time) + "\n");
         if (userAgent != null) sb.append("  userAgent = " + userAgent + "\n");
-        sb.append("  connection timeout = " + connectionTimeout + "ms\n");
-        sb.append("  request timeout = " + timeout + "ms\n");
+        sb.append("  connection timeout = " + Utils.durationToString(connectionTimeout) + "\n");
+        sb.append("  request timeout = " + Utils.durationToString(timeout) + "\n");
         sb.append("  warmup = " + warmup + "\n");
         sb.append("  keepalive = " + keepalive + "\n");
         if (inFile != null) sb.append("  in file = " + inFile + "\n");

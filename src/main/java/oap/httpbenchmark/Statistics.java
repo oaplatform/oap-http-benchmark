@@ -18,7 +18,7 @@ public class Statistics {
 
     public Statistics(Configuration configuration) {
         histogram = new AtomicLong[configuration.histogram.length];
-        for (var i = 0; i < configuration.histogram.length; i++) histogram[i] = new AtomicLong();
+        for (var i = 0; i < histogram.length; i++) histogram[i] = new AtomicLong();
 
         this.configuration = configuration;
     }
@@ -60,8 +60,7 @@ public class Statistics {
     public void addTime(long duration) {
         time.addAndGet(duration);
         var index = Arrays.binarySearch(configuration.histogram, duration);
-        if (index < 0) index = -index - 1;
-//        System.out.println("d = " + duration + ", idx = " + index + ", v = " + configuration.histogram[index]);
+        if (index < 0) index = -index - 2;
         histogram[index].incrementAndGet();
     }
 }

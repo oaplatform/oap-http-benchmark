@@ -1,6 +1,7 @@
 package oap.httpbenchmark;
 
 import com.google.common.util.concurrent.RateLimiter;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
@@ -46,6 +47,8 @@ public class Task extends Thread {
                     var code = -1;
                     if (e instanceof SocketTimeoutException) {
                         code = -2;
+                    } else if (e instanceof ConnectTimeoutException) {
+                        code = -3;
                     } else {
                         System.err.println(e.getClass());
                     }

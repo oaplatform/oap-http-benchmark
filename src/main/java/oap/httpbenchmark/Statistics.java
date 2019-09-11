@@ -43,13 +43,15 @@ public class Statistics {
         System.out.println("Response code:");
         code.forEach((code, codeCount) -> {
             var percent = codeCount.get() * 100d / c;
+            String codeStr;
             if (code == -1) {
-                System.out.printf("  UER - %d (%.2f%%)\n", codeCount.get(), percent);
+                codeStr = "UER";
             } else if (code == -2) {
-                System.out.printf("  STE - %d (%.2f%%)\n", codeCount.get(), percent);
+                codeStr = "CTE";
             } else {
-                System.out.printf("  %d - %d (%.2f%%)\n", code, codeCount.get(), percent);
+                codeStr = String.valueOf(code);
             }
+            System.out.printf("  %s - %d (%.2f%%)\n", codeStr, codeCount.get(), percent);
         });
     }
 

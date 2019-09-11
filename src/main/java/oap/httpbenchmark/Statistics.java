@@ -13,7 +13,7 @@ public class Statistics {
     public final ConcurrentHashMap<Integer, AtomicLong> code = new ConcurrentHashMap<>();
     public final AtomicLong time = new AtomicLong();
     public final AtomicLong[] histogram;
-
+    public final AtomicLong connection = new AtomicLong();
     private final Configuration configuration;
 
     public Statistics(Configuration configuration) {
@@ -29,6 +29,7 @@ public class Statistics {
         System.out.println("Requests: " + c);
         System.out.printf("Qps: %.2f\n", c * 1000.d / duration);
         System.out.printf("Avg: %.3fms\n", (double) time.get() / count.get());
+        System.out.printf("Connections: %d\n", connection.get());
         System.out.println("Response histogram:");
         for (var i = configuration.histogram.length - 1; i >= 0; i--) {
             var count = 0L;
@@ -47,6 +48,8 @@ public class Statistics {
             if (code == -1) {
                 codeStr = "UER";
             } else if (code == -2) {
+                codeStr = "STE";
+            } else if (code == -3) {
                 codeStr = "CTE";
             } else {
                 codeStr = String.valueOf(code);

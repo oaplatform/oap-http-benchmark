@@ -13,12 +13,15 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class Task extends Thread {
     private final Configuration configuration;
+    private final RateLimiter rateLimiter;
     private final Statistics statistics;
+    private final byte[] bytes = new byte[1024 * 8];
     public boolean done = false;
     private Context context;
 
     public Task(Configuration configuration, RateLimiter rateLimiter, Statistics statistics) {
         this.configuration = configuration;
+        this.rateLimiter = rateLimiter;
         this.statistics = statistics;
     }
 
@@ -28,14 +31,20 @@ public class Task extends Thread {
             var warmUpMode = statistics.isWarmUpMode();
             try {
                 if (context == null)
-                    context = new Context(configuration);
+                    context = new Context(configuration, statistics);
 
+                rateLimiter.acquire();
                 var start = System.currentTimeMillis();
                 var response = context.client.execute(context.request);
 
                 var statusLine = response.getStatusLine();
                 var entity = response.getEntity();
-                if (entity != null) EntityUtils.consume(entity);
+                if (entity != null) {
+                    try (var is = entity.getContent()) {
+                        while (is.read(bytes) >= 0) ;
+                    }
+                    EntityUtils.consume(entity);
+                }
                 var end = System.currentTimeMillis();
 
                 if (!warmUpMode) {

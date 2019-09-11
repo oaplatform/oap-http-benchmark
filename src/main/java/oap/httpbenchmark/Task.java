@@ -2,11 +2,14 @@ package oap.httpbenchmark;
 
 import com.google.common.util.concurrent.RateLimiter;
 import org.apache.http.conn.ConnectTimeoutException;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static oap.httpbenchmark.Utils.*;
 
 /**
  * Created by igor.petrenko on 09/02/2019.
@@ -55,9 +58,11 @@ public class Task extends Thread {
                 if (!warmUpMode) {
                     var code = -1;
                     if (e instanceof SocketTimeoutException) {
-                        code = -2;
+                        code = SOCKET_TIMEOUT_EXCEPTION;
                     } else if (e instanceof ConnectTimeoutException) {
-                        code = -3;
+                        code = CONNECT_TIMEOUT_EXCEPTION;
+                    } else if (e instanceof HttpHostConnectException) {
+                        code = HTTP_HOST_CONNECT_EXCEPTION;
                     } else {
                         System.err.println(e.getClass());
                     }

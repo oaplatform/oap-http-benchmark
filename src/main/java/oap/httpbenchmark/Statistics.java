@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
+import static oap.httpbenchmark.Utils.*;
+
 /**
  * Created by igor.petrenko on 09/10/2019.
  */
@@ -44,16 +46,14 @@ public class Statistics {
         System.out.println("Response code:");
         code.forEach((code, codeCount) -> {
             var percent = codeCount.get() * 100d / c;
-            String codeStr;
-            if (code == -1) {
-                codeStr = "UER";
-            } else if (code == -2) {
-                codeStr = "STE";
-            } else if (code == -3) {
-                codeStr = "CTE";
-            } else {
-                codeStr = String.valueOf(code);
-            }
+            var codeStr = switch (code) {
+                case SOCKET_TIMEOUT_EXCEPTION -> "STE";
+                case CONNECT_TIMEOUT_EXCEPTION -> "CTE";
+                case HTTP_HOST_CONNECT_EXCEPTION -> "HCE";
+                case -1 -> "UER";
+                default -> String.valueOf(code);
+            };
+
             System.out.printf("  %s - %d (%.2f%%)\n", codeStr, codeCount.get(), percent);
         });
     }

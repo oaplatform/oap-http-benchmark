@@ -1,17 +1,15 @@
 package oap.httpbenchmark;
 
 import com.google.common.base.Preconditions;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.ProtocolException;
 import org.apache.http.client.RedirectStrategy;
 import org.apache.http.client.methods.*;
+import org.apache.http.client.utils.URIUtils;
 import org.apache.http.config.ConnectionConfig;
-import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.impl.NoConnectionReuseStrategy;
 import org.apache.http.impl.client.DefaultClientConnectionReuseStrategy;
@@ -34,6 +32,7 @@ import org.apache.http.protocol.HttpContext;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 
 /**
  * Created by igor.petrenko on 09/02/2019.
@@ -41,6 +40,7 @@ import java.io.IOException;
 public class Context {
     public final CloseableHttpAsyncClient client;
     public final HttpRequestBase request;
+    public final HttpHost target;
 
     public Context(Configuration configuration, Statistics statistics) throws IOException {
         var ioReactorConfig = IOReactorConfig.custom()
@@ -98,6 +98,10 @@ public class Context {
             case GET -> new HttpGet(configuration.url);
             case POST -> new HttpPost(configuration.url);
         };
+
+        URI requestURI = request.getURI();
+        target = URIUtils.extractHost(requestURI);
+
 
         if (configuration.inFile != null) {
             Preconditions.checkArgument(request instanceof HttpEntityEnclosingRequestBase);

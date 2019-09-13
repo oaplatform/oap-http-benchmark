@@ -30,18 +30,21 @@ public class Configuration {
     @Override
     public String toString() {
         var sb = new StringBuilder();
-        sb.append("  threads = " + threads + "\n");
-        if (qps > 0) sb.append("  qps = " + qps + "\n");
-        sb.append("  method = " + method.name() + "\n");
-        sb.append("  time = " + Utils.durationToString(time) + "\n");
-        if (userAgent != null) sb.append("  userAgent = " + userAgent + "\n");
-        sb.append("  connection timeout = " + Utils.durationToString(connectionTimeout) + "\n");
-        sb.append("  request timeout = " + Utils.durationToString(timeout) + "\n");
-        sb.append("  warmup = " + warmup + "\n");
-        sb.append("  keepalive = " + keepalive + "\n");
-        if (inFile != null) sb.append("  in file = " + inFile + "\n");
-        sb.append("  histogram = " + LongStream.of(histogram).mapToObj(String::valueOf).collect(joining(",")) + "\n");
-        sb.append("  url = " + url + "\n");
+        sb.append("  threads:              " + threads + "\n");
+        if (qps > 0)
+        sb.append("  qps:                  " + qps + "\n");
+        sb.append("  method:               " + method.name() + "\n");
+        sb.append("  time:                 " + Utils.durationToString(time) + "\n");
+        if (userAgent != null)
+        sb.append("  userAgent:            " + userAgent + "\n");
+        sb.append("  connection timeout:   " + Utils.durationToString(connectionTimeout) + "\n");
+        sb.append("  request timeout:      " + Utils.durationToString(timeout) + "\n");
+        sb.append("  warmup:               " + warmup + "\n");
+        sb.append("  keepalive:            " + keepalive + "\n");
+        if (inFile != null)
+        sb.append("  in file:              " + inFile + "\n");
+        sb.append("  histogram:            " + LongStream.of(histogram).mapToObj(String::valueOf).collect(joining(",")) + "\n");
+        sb.append("  url:                  " + url + "\n");
 
         return sb.toString();
     }

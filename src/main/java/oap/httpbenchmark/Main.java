@@ -1,9 +1,15 @@
 package oap.httpbenchmark;
 
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.conn.HttpHostConnectException;
+import org.apache.http.nio.ContentEncoder;
+import org.apache.http.nio.IOControl;
+import org.apache.http.nio.client.methods.HttpAsyncMethods;
+import org.apache.http.nio.protocol.BasicAsyncRequestProducer;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
@@ -90,8 +96,17 @@ public class Main {
 
             semaphore.acquire();
 //            System.out.println("execute " + statistics.count + " / " + statistics.warmup + " / " + statistics.isWarmUpMode());
-            var startTime = System.currentTimeMillis();
-            context.client.execute(context.request, new FutureCallback<>() {
+            var startTime = new AtomicLong();
+
+            var httpContext = HttpClientContext.create();
+            var producer = new BasicAsyncRequestProducer(context.target, context.request) {
+                @Override
+                public HttpRequest generateRequest() {
+                    startTime.set(System.currentTimeMillis());
+                    return super.generateRequest();
+                }
+            };
+            context.client.execute(producer, HttpAsyncMethods.createConsumer(), httpContext, new FutureCallback<>() {
                 public void completed(HttpResponse response) {
                     var entity = response.getEntity();
                     try {
@@ -101,7 +116,7 @@ public class Main {
                     var warmUpMode = statistics.isWarmUpMode();
                     done(semaphore, warmUpMode, statistics);
                     if (!warmUpMode) {
-                        statistics.addTime(System.currentTimeMillis() - startTime);
+                        statistics.addTime(System.currentTimeMillis() - startTime.get());
                         statistics.code.computeIfAbsent(response.getStatusLine().getStatusCode(), k -> new AtomicLong()).incrementAndGet();
                     }
                 }

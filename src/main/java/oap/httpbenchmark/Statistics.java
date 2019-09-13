@@ -28,10 +28,11 @@ public class Statistics {
     public void print(long duration) {
         var c = count.get();
         System.out.println();
-        System.out.println("Requests: " + c);
-        System.out.printf("Qps: %.2f\n", c * 1000.d / duration);
-        System.out.printf("Avg: %.3fms\n", (double) time.get() / count.get());
-        System.out.printf("Connections: %d\n", connection.get());
+        System.out.printf("Complete requests:      %d\n", c);
+        System.out.printf("Qps:                    %.2f\n", c * 1000.d / duration);
+        System.out.printf("Time per request:       %.3f [ms]\n", (double) time.get() / count.get());
+        System.out.printf("Time per request:       %.3f [ms] (mean, across all concurrent requests)\n", (double) c / configuration.time);
+        System.out.printf("Connections:            %d\n", connection.get());
         System.out.println("Response histogram:");
         for (var i = configuration.histogram.length - 1; i >= 0; i--) {
             var count = 0L;

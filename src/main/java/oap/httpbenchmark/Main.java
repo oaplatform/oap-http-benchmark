@@ -1,14 +1,24 @@
 package oap.httpbenchmark;
 
-import com.google.common.util.concurrent.RateLimiter;
+import org.apache.http.HttpResponse;
+import org.apache.http.concurrent.FutureCallback;
+import org.apache.http.conn.ConnectTimeoutException;
+import org.apache.http.conn.HttpHostConnectException;
+import org.apache.http.util.EntityUtils;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
+
+import static oap.httpbenchmark.Utils.*;
 
 /**
  * Created by igor.petrenko on 09/02/2019.
  */
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException, InterruptedException {
         var configuration = new Configuration();
 
         for (int i = 0; i < args.length; i++) {
@@ -60,47 +70,79 @@ public class Main {
         System.exit(1);
     }
 
-    private static void run(Configuration configuration) {
+    private static void run(Configuration configuration) throws IOException, InterruptedException {
         System.setProperty("jdk.httpclient.connectionPoolSize", "1");
         System.setProperty("jdk.httpclient.keepalive.timeout", "99999999");
 
-        var rateLimiter = RateLimiter.create(configuration.qps);
         var statistics = new Statistics(configuration);
 
-        var pool = new Task[configuration.threads];
-        for (var i = 0; i < configuration.threads; i++) {
-            var task = new Task(configuration, rateLimiter, statistics);
-            pool[i] = task;
-        }
-
-        for (var thread : pool) {
-            thread.start();
-        }
 
         var start = -1L;
 
-        while (System.currentTimeMillis() < start + configuration.time || start == -1L) {
+        var context = new Context(configuration, statistics);
+        var semaphore = new Semaphore(configuration.qps);
+        context.client.start();
+
+        while (start == -1L || System.currentTimeMillis() < start + configuration.time) {
             if (!statistics.isWarmUpMode() && start == -1) {
                 start = System.currentTimeMillis();
             }
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-            }
-        }
-        for (var thread : pool) {
-            thread.done = true;
-        }
-        for (var thread : pool) {
-            try {
-                thread.join(5000);
-            } catch (InterruptedException e) {
-            }
-        }
-        for (var thread : pool) thread.stop();
 
+            semaphore.acquire();
+//            System.out.println("execute " + statistics.count + " / " + statistics.warmup + " / " + statistics.isWarmUpMode());
+            var startTime = System.currentTimeMillis();
+            context.client.execute(context.request, new FutureCallback<>() {
+                public void completed(HttpResponse response) {
+                    var entity = response.getEntity();
+                    try {
+                        EntityUtils.consume(entity);
+                    } catch (IOException ignored) {
+                    }
+                    var warmUpMode = statistics.isWarmUpMode();
+                    done(semaphore, warmUpMode, statistics);
+                    if (!warmUpMode) {
+                        statistics.addTime(System.currentTimeMillis() - startTime);
+                        statistics.code.computeIfAbsent(response.getStatusLine().getStatusCode(), k -> new AtomicLong()).incrementAndGet();
+                    }
+                }
+
+                public void failed(final Exception e) {
+                    var warmUpMode = statistics.isWarmUpMode();
+                    done(semaphore, warmUpMode, statistics);
+
+                    if (!warmUpMode) {
+                        var code = -1;
+                        if (e instanceof SocketTimeoutException) {
+                            code = SOCKET_TIMEOUT_EXCEPTION;
+                        } else if (e instanceof ConnectTimeoutException) {
+                            code = CONNECT_TIMEOUT_EXCEPTION;
+                        } else if (e instanceof HttpHostConnectException) {
+                            code = HTTP_HOST_CONNECT_EXCEPTION;
+                        } else {
+                            System.err.println(e.getClass());
+                        }
+
+                        statistics.code.computeIfAbsent(code, k -> new AtomicLong()).incrementAndGet();
+                    }
+                }
+
+                public void cancelled() {
+                    done(semaphore, statistics.isWarmUpMode(), statistics);
+                }
+
+            });
+        }
 
         statistics.print(System.currentTimeMillis() - start);
+    }
+
+    private static void done(Semaphore semaphore, boolean warmUpMode, Statistics statistics) {
+        if (!warmUpMode)
+            statistics.count.incrementAndGet();
+        else
+            statistics.warmup.incrementAndGet();
+
+        semaphore.release();
     }
 
     private static long timeToMS(String value) {

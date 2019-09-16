@@ -31,7 +31,7 @@ public class Statistics {
         System.out.printf("Complete requests:      %d\n", c);
         System.out.printf("Qps:                    %.2f\n", c * 1000.d / duration);
         System.out.printf("Time per request:       %.3f [ms]\n", (double) time.get() / count.get());
-        System.out.printf("Time per request:       %.3f [ms] (mean, across all concurrent requests)\n", (double) c / configuration.time);
+        System.out.printf("Time per request:       %.3f [ms] (mean, across all concurrent requests)\n", (double) c / duration);
         System.out.printf("Connections:            %d\n", connection.get());
         System.out.println("Response histogram:");
         for (var i = configuration.histogram.length - 1; i >= 0; i--) {
